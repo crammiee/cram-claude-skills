@@ -62,3 +62,44 @@ jobs:
             [ -s "$dest/SKILL.md" ] || { echo "::error::$dest/SKILL.md missing or empty"; exit 1; }
             echo "OK: $name -> $(readlink -f "$dest")"
           done
+
+      - name: uninstall.sh leaves a real (non-symlink) skill dir alone
+        run: |
+          set -eu
+          dest="$HOME/.claude/skills/cram-plan-feature"
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          echo "pre-existing real content" > "$dest/SKILL.md"
+          sh ./uninstall.sh
+          [ -f "$dest/SKILL.md" ] || { echo "::error::uninstall.sh deleted a real (non-symlink) skill dir instead of skipping it"; exit 1; }
+          grep -qx "pre-existing real content" "$dest/SKILL.md" || { echo "::error::uninstall.sh altered a real skill dir's content"; exit 1; }
+          echo "OK: real non-symlink dir left untouched"
+          rm -rf "$dest"
+
+      - name: uninstall.sh from local checkout removes only its own symlinks
+        run: |
+          set -eu
+          sh ./uninstall.sh
+          for skill_path in skills/*/; do
+            name=$(basename "$skill_path")
+            dest="$HOME/.claude/skills/$name"
+            [ -e "$dest" ] && { echo "::error::$dest still exists after uninstall"; exit 1; }
+          done
+          echo "OK: all local-checkout symlinks removed"
+
+      - name: uninstall.sh is idempotent (safe to run with nothing installed)
+        run: sh ./uninstall.sh
+
+      - name: uninstall.sh from bootstrap checkout removes its symlinks
+        env:
+          CRAM_SKILLS_REPO_DIR: /tmp/bootstrap-checkout
+        run: |
+          set -eu
+          export HOME=/tmp/bootstrap-home
+          sh /tmp/bootstrap-checkout/uninstall.sh
+          for skill_path in skills/*/; do
+            name=$(basename "$skill_path")
+            dest="/tmp/bootstrap-home/.claude/skills/$name"
+            [ -e "$dest" ] && { echo "::error::$dest still exists after uninstall"; exit 1; }
+          done
+          echo "OK: all bootstrap-mode symlinks removed"
