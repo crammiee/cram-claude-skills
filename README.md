@@ -17,8 +17,14 @@ Or bootstrap directly without cloning first — the script clones itself to
 doesn't find a local checkout next to it:
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/crammiee/cram-claude-skills/main/install.sh)"
+script="$(curl -fsSL https://raw.githubusercontent.com/crammiee/cram-claude-skills/main/install.sh)" && sh -c "$script"
 ```
+
+Note this is *not* the same as `sh -c "$(curl -fsSL url)"` — that form throws
+away curl's exit status inside the command substitution, so a failed download
+(network blip, repo made private again, wrong URL) silently runs `sh -c ""`
+and reports success having done nothing. `script=$(curl ...) && sh -c "$script"`
+actually fails loudly when the download fails.
 
 `.github/workflows/test-install-arch.yml` runs both forms on a fresh Arch
 Linux container on every push, so a broken install is caught in CI.

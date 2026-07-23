@@ -43,11 +43,14 @@ jobs:
           export HOME=/tmp/bootstrap-home
           mkdir -p "$HOME"
           git config --global --add safe.directory "$CRAM_SKILLS_REPO_DIR"
-          # Mirrors: sh -c "$(curl -fsSL https://raw.githubusercontent.com/.../install.sh)"
+          # Mirrors: script="$(curl -fsSL https://raw.githubusercontent.com/.../install.sh)" && sh -c "$script"
           # but fetches the script at the exact commit under test, not `main`,
-          # so this actually validates the change being reviewed.
+          # so this actually validates the change being reviewed. Using
+          # `script=$(curl ...) && sh -c "$script"` (not `sh -c "$(curl ...)"`)
+          # so a failed download fails this step instead of silently no-op'ing.
           raw_url="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh"
-          sh -c "$(curl -fsSL "$raw_url")"
+          script="$(curl -fsSL "$raw_url")"
+          sh -c "$script"
 
       - name: Verify skills symlinked (bootstrap mode)
         run: |

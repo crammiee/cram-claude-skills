@@ -5,8 +5,10 @@
 #
 # Works two ways:
 #   1. Local checkout:  ./install.sh   (or `bash install.sh`)
-#   2. Bootstrap:        sh -c "$(curl -fsSL https://raw.githubusercontent.com/crammiee/cram-claude-skills/main/install.sh)"
+#   2. Bootstrap:        script="$(curl -fsSL https://raw.githubusercontent.com/crammiee/cram-claude-skills/main/install.sh)" && sh -c "$script"
 #      In this mode there's no local checkout to find, so it clones one.
+#      (Use the `script=... && sh -c "$script"` form, not `sh -c "$(curl ...)"` —
+#      the latter swallows curl's exit status and silently no-ops on failure.)
 set -eu
 
 REPO_URL="${CRAM_SKILLS_REPO_URL:-https://github.com/crammiee/cram-claude-skills.git}"
