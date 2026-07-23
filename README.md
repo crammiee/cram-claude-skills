@@ -8,9 +8,20 @@ running Claude Code.
 ## Install
 
 ```bash
-git clone <this-repo-url> ~/dev/skills/cram-claude-skills
+git clone git@github.com:crammiee/cram-claude-skills.git ~/dev/skills/cram-claude-skills
 ~/dev/skills/cram-claude-skills/install.sh
 ```
+
+Or bootstrap directly without cloning first — the script clones itself to
+`~/dev/skills/cram-claude-skills` (override with `CRAM_SKILLS_REPO_DIR`) if it
+doesn't find a local checkout next to it:
+
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/crammiee/cram-claude-skills/main/install.sh)"
+```
+
+`.github/workflows/test-install-arch.yml` runs both forms on a fresh Arch
+Linux container on every push, so a broken install is caught in CI.
 
 `install.sh` symlinks each skill in `skills/` into `~/.claude/skills/`. Because
 it's a symlink (not a copy), any edit Claude Code makes to a skill — it writes

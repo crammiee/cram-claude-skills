@@ -1,0 +1,61 @@
+name: Test install on Arch Linux
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-install:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install prerequisites
+        run: pacman -Syu --noconfirm --needed git curl
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mark repo as safe (container runs as root)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Run install.sh from local checkout
+        run: sh ./install.sh
+
+      - name: Verify skills symlinked (local-checkout mode)
+        run: |
+          set -eu
+          for skill_path in skills/*/; do
+            name=$(basename "$skill_path")
+            dest="$HOME/.claude/skills/$name"
+            [ -L "$dest" ] || { echo "::error::$dest is not a symlink"; exit 1; }
+            [ -s "$dest/SKILL.md" ] || { echo "::error::$dest/SKILL.md missing or empty"; exit 1; }
+            echo "OK: $name -> $(readlink -f "$dest")"
+          done
+
+      - name: Test curl-pipe bootstrap install (fresh HOME)
+        env:
+          CRAM_SKILLS_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          CRAM_SKILLS_REPO_DIR: /tmp/bootstrap-checkout
+        run: |
+          set -eu
+          export HOME=/tmp/bootstrap-home
+          mkdir -p "$HOME"
+          git config --global --add safe.directory "$CRAM_SKILLS_REPO_DIR"
+          # Mirrors: sh -c "$(curl -fsSL https://raw.githubusercontent.com/.../install.sh)"
+          # but fetches the script at the exact commit under test, not `main`,
+          # so this actually validates the change being reviewed.
+          raw_url="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh"
+          sh -c "$(curl -fsSL "$raw_url")"
+
+      - name: Verify skills symlinked (bootstrap mode)
+        run: |
+          set -eu
+          for skill_path in skills/*/; do
+            name=$(basename "$skill_path")
+            dest="/tmp/bootstrap-home/.claude/skills/$name"
+            [ -L "$dest" ] || { echo "::error::$dest is not a symlink"; exit 1; }
+            [ -s "$dest/SKILL.md" ] || { echo "::error::$dest/SKILL.md missing or empty"; exit 1; }
+            echo "OK: $name -> $(readlink -f "$dest")"
+          done
