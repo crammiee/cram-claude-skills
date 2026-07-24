@@ -30,12 +30,19 @@ closing it out anyway — don't mark something done that isn't.
 
 ### Steps
 
-1. **Confirm every named stage is actually done.** Re-check (or trust very
-   recent in-session verification of) build + test status against each
-   stage's own acceptance-criteria list in the doc. If anything's unverified
-   or failing for any stage, stop and report that instead of proceeding —
-   don't close out the stages that did pass while silently dropping the one
-   that didn't; surface it and ask how to proceed.
+1. **Confirm every named stage is actually done.** If the stage was just
+   finished via `cram-implement-plan-stage`, trust its own reported result
+   — build/test green plus its independent-review step passed — rather than
+   re-verifying from scratch; that check already happened with a fresh,
+   unbiased reviewer and re-doing it here only burns tokens for no new
+   signal. For anything not verified that way (older work, manual claims, or a stage
+   `cram-fan-out-stages` resolved directly itself in its own pre-flight step
+   rather than through a `cram-implement-plan-stage` subagent — no review ran
+   there), re-check build + test status yourself against the stage's
+   acceptance-criteria list. If
+   anything's unverified or failing for any stage, stop and report that
+   instead of proceeding — don't close out the stages that did pass while
+   silently dropping the one that didn't; surface it and ask how to proceed.
 
 2. **Find the repo's existing "done" convention before inventing one.**
    Check whether any earlier stage in this doc (or a sibling doc in the

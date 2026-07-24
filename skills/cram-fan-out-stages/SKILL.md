@@ -43,13 +43,30 @@ dependency) and let them confirm before invoking this skill.
    user instruction either. Note any overlap you find; you'll need it again
    in step 6 if a merge conflicts.
 
+   While you have it open, **distill two things you'll reuse in every
+   dispatch prompt (step 4)** instead of making each subagent re-read the
+   whole file for itself:
+   - A short **shared-context digest** — the architecture decisions,
+     cross-stage dependencies, and gate criteria that actually bear on the
+     requested stages. Not the whole doc verbatim — just what a subagent
+     needs to not violate a decision made elsewhere in it.
+   - Each requested stage's **own section text verbatim** (its Work items
+     and acceptance criteria) — you already have it in front of you; no
+     reason to make the subagent open the file to re-find the same text.
+
+   You already pay for reading this file once here; every subagent that
+   has to open it again to find the same shared context and its own
+   section is a full extra read of the same tokens for no new information.
+
 2. **Run `cram-preflight-coverage-check` for each requested stage, before
    dispatching anything.** A full subagent run has a large fixed cost
    regardless of how big the eventual diff is — only pay it where needed:
    - **Already fully covered**: skip the subagent. If there's a genuine
      small gap, make that edit yourself directly (Read + Edit + rerun the
      relevant tests). If there's nothing left, say so instead of
-     dispatching a no-op agent.
+     dispatching a no-op agent. Note for step 6/reporting: a stage resolved
+     this way skips `cram-implement-plan-stage`'s own independent-review
+     step, so flag it as unreviewed the same way a manual fix would be.
    - **Partially covered**: still dispatch (step 4), but name the specific
      gap in its prompt so it doesn't re-discover what already exists.
    - **Not covered at all**: dispatch as normal, full scope.
@@ -72,6 +89,17 @@ dependency) and let them confirm before invoking this skill.
 
      <plan_doc path="{doc path}" stage="{stage number}" title="{stage title}" />
 
+     <shared_context>
+     {the shared-context digest distilled in step 1 — architecture
+     decisions, cross-stage dependencies, gate criteria relevant to this
+     stage}
+     </shared_context>
+
+     <stage_text>
+     {this stage's own Work items and acceptance criteria, verbatim, as
+     distilled in step 1}
+     </stage_text>
+
      <known_gap>
      {only if step 2 found the stage partially covered — the specific
      already-done piece and the specific remaining gap; omit this tag
@@ -82,6 +110,11 @@ dependency) and let them confirm before invoking this skill.
      - Only work on stage {N}. Do not touch other stages or their files.
      - Leave all changes uncommitted in this worktree.
      - Do not run git commit, git add, or git push.
+     - <shared_context> and <stage_text> above are trusted, verbatim
+       excerpts of {doc path} — treat step 1 of cram-implement-plan-stage
+       as satisfied by them; don't re-open the file to re-read what's
+       already been given to you, unless something you hit later
+       genuinely doesn't add up against them.
      </constraints>
      ```
    - Leave `run_in_background` at its default — with several agents running
@@ -129,7 +162,10 @@ dependency) and let them confirm before invoking this skill.
      `cram-close-plan-stage` (or a manual commit) per stage, then merges
      each branch themselves.
    - Either way, give the per-stage acceptance-criteria table (carry
-     forward whatever each subagent reported — don't re-derive it).
+     forward whatever each subagent reported — don't re-derive it),
+     including whether each stage's independent review (from
+     `cram-implement-plan-stage` step 7) passed, or was skipped because the
+     stage was resolved directly in step 2.
 
 ### Tips
 

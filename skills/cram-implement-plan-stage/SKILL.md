@@ -1,6 +1,6 @@
 ---
 name: cram-implement-plan-stage
-description: Research, implement, and test a single stage of an existing staged plan doc end-to-end. Asks the user before assuming whenever multiple viable options exist; otherwise loops implement/build/test/fix autonomously until the stage's acceptance criteria are met. Delegates low-level search/grep to a cheap model, keeps all code writes on the primary model, and stops short of committing so the user can manually QA. Use when the user names a plan doc plus a stage/phase number and wants it actually executed — not designed from scratch (use cram-plan-feature for that). Pairs with cram-preflight-coverage-check (run before the research/implement loop, to size how much of the stage is actually left to do) and cram-close-plan-stage (to close out after).
+description: Research, implement, and test a single stage of an existing staged plan doc end-to-end. Asks the user before assuming whenever multiple viable options exist; otherwise loops implement/build/test/fix autonomously (capped at ~5 iterations) until the stage's acceptance criteria are met, then runs one independent review pass with a fresh subagent scoped to just the diff and acceptance criteria — catching self-graded rationalization without doubling the loop's cost. Delegates low-level search/grep to a cheap model, keeps all code writes on the primary model, and stops short of committing so the user can manually QA. Use when the user names a plan doc plus a stage/phase number and wants it actually executed — not designed from scratch (use cram-plan-feature for that). Pairs with cram-preflight-coverage-check (run before the research/implement loop, to size how much of the stage is actually left to do) and cram-close-plan-stage (to close out after).
 ---
 
 ## Implement Plan Stage
@@ -26,11 +26,25 @@ for open-ended feature work with no plan doc yet — write the plan first
 
 ### Steps
 
-1. **Read the whole plan doc, not just the target stage.** Staged plans
-   put shared context — architecture decisions, rejected alternatives,
-   cross-stage dependencies, the permission/acceptance matrix — in
-   sections above the stage list; a stage's bullet points assume that
-   context. Confirm any prior stages this one depends on are actually
+1. **Read the whole plan doc, not just the target stage — unless it's
+   already been handed to you.** Staged plans put shared context —
+   architecture decisions, rejected alternatives, cross-stage
+   dependencies, the permission/acceptance matrix — in sections above the
+   stage list; a stage's bullet points assume that context.
+
+   If you were invoked with `<shared_context>` and `<stage_text>` tags
+   already populated (e.g. dispatched by `cram-fan-out-stages`, which read
+   the doc once for every stage it's fanning out and passed you your
+   share verbatim), treat those as satisfying this step — don't re-open
+   the file to re-derive text you were already given; that's a full
+   duplicate read of the same tokens for no new information. Only fall
+   back to opening the file yourself if something you hit later genuinely
+   doesn't add up against what you were given.
+
+   Otherwise (a standalone invocation with no pre-supplied context), read
+   the whole doc yourself as before.
+
+   Either way: confirm any prior stages this one depends on are actually
    done in the code (check git log / read the relevant files) — don't
    trust the doc's own checkmarks blindly, verify against real state.
 
@@ -97,21 +111,47 @@ for open-ended feature work with no plan doc yet — write the plan first
 6. **Loop implement → build → test → fix autonomously**, without
    returning to the user between iterations, until every acceptance
    criterion listed for the stage is met. Run the repo's real build/test
-   commands yourself (don't ask the user to run them). If a test failure
-   reveals a genuine design ambiguity rather than a plain bug, that's
-   another trigger for step 4 — stop and ask rather than guessing your
-   way past it.
+   commands yourself (don't ask the user to run them) — that's the actual
+   gate, not your own read of the diff. If a test failure reveals a
+   genuine design ambiguity rather than a plain bug, that's another
+   trigger for step 4 — stop and ask rather than guessing your way past
+   it. Cap this at roughly 5 iterations: each pass re-sends the growing
+   context (goal, code, last result), so an unbounded loop compounds cost
+   fast. If it's still red after ~5, stop and report what's failing and
+   why instead of grinding further.
 
-7. **Stop before committing.** Once the stage's acceptance criteria are
-   green, stop there. Do not `git add`/`commit`/`push` anything — leave
-   the working tree as-is for the user to manually QA and commit
-   themselves, unless they explicitly say otherwise for this run.
+7. **Independent review, once, after the loop goes green — not per
+   iteration.** The build/test gate in step 6 catches broken code; it
+   doesn't catch acceptance criteria met the wrong way (a trivially
+   written test, a pattern that violates repo conventions, a criterion
+   satisfied by coincidence rather than intent) — you wrote the code, so
+   you're the wrong judge of that. Dispatch a **fresh `Agent`** with no
+   memory of this conversation, scoped to just:
+   - the diff (`git diff`)
+   - the stage's acceptance-criteria bullets, verbatim
+   - the changed file paths
 
-8. **Report what's verified vs. what still needs a human.** Summarize
+   Keeping its context to just those — not the full session — is what
+   keeps this cheap; running it once per stage rather than per loop
+   iteration is what keeps it from doubling the loop's cost. Ask it to
+   check each criterion strictly against the actual diff and flag
+   anything unmet, untested, or only superficially satisfied. If it
+   flags something real, fix it and re-run this step once more; if still
+   disputed after two rounds, stop and surface the disagreement to the
+   user rather than looping indefinitely.
+
+8. **Stop before committing.** Once the stage's acceptance criteria are
+   green and step 7's review has passed (or been resolved), stop there.
+   Do not `git add`/`commit`/`push` anything — leave the working tree
+   as-is for the user to manually QA and commit themselves, unless they
+   explicitly say otherwise for this run.
+
+9. **Report what's verified vs. what still needs a human.** Summarize
    which acceptance criteria you confirmed automatically (build passed,
-   unit suite green, specific assertions) versus which ones the plan
-   marks as manual/live verification (curl matrices, UI walkthroughs)
-   that only the user can actually do — don't claim those as done.
+   unit suite green, specific assertions, independent review passed)
+   versus which ones the plan marks as manual/live verification (curl
+   matrices, UI walkthroughs) that only the user can actually do — don't
+   claim those as done.
 
 ### Tips
 
