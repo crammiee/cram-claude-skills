@@ -26,9 +26,13 @@ and let the calling skill proceed straight to its normal full-scope path.
 
 ### Procedure
 
-1. **Identify the stage's target files and concrete bullets** — the specific
-   files its scope section names, and the specific cases/behaviors it lists
-   (not just the stage title).
+1. **Identify the stage's target files and concrete bullets** — pull file
+   paths from the backtick-quoted tokens inline in its own Work/Acceptance
+   bullets (e.g. `` `package.json` ``, `` `src/Root.tsx` ``), plus the
+   specific cases/behaviors those bullets describe (not just the stage
+   title). Plan docs name files this way in prose, not under a dedicated
+   labeled section — grep the bullets for backtick-quoted paths rather than
+   hunting for a separate "scope" heading.
 
 2. **Check existing coverage for those files:**
    - Prefer this project's `code-review-graph` MCP tools where available —

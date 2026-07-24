@@ -51,7 +51,7 @@ To remove the symlinks this repo installed:
 | [cram-implement-plan-stage](skills/cram-implement-plan-stage/SKILL.md) | Research, implement, and test a single stage of an existing staged plan doc end-to-end. |
 | [cram-fan-out-stages](skills/cram-fan-out-stages/SKILL.md) | Fan out multiple explicitly-chosen stages to parallel subagents, each in its own git worktree. |
 | [cram-preflight-coverage-check](skills/cram-preflight-coverage-check/SKILL.md) | Cheap check for how much of a stage's required behavior/tests already exist, used internally by the two skills above. |
-| [cram-close-plan-stage](skills/cram-close-plan-stage/SKILL.md) | Mark a finished stage done in the plan doc, show the diff, and commit with a conventional-commit message. |
+| [cram-close-plan-stage](skills/cram-close-plan-stage/SKILL.md) | Mark one or more finished stages done in the plan doc, show the diff, and commit with a conventional-commit message (combined or per-stage). |
 
 ### Typical flow
 

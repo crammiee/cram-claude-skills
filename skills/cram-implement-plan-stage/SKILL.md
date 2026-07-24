@@ -1,6 +1,6 @@
 ---
 name: cram-implement-plan-stage
-description: Research, implement, and test a single stage of an existing staged plan doc end-to-end. Asks the user before assuming whenever multiple viable options exist; otherwise loops implement/build/test/fix autonomously until the stage's acceptance criteria are met. Delegates low-level search/grep to a cheap model, keeps all code writes on the primary model, and stops short of committing so the user can manually QA. Use when the user names a plan doc plus a stage/phase number and wants it actually executed — not designed from scratch (use cram-plan-feature for that). Pairs with cram-preflight-coverage-check (run before the research/implement loop, to size how much of the stage is actually left to do), cram-close-plan-stage (to close out after), and cram-graph-vulnerability-review (to security-check before closing).
+description: Research, implement, and test a single stage of an existing staged plan doc end-to-end. Asks the user before assuming whenever multiple viable options exist; otherwise loops implement/build/test/fix autonomously until the stage's acceptance criteria are met. Delegates low-level search/grep to a cheap model, keeps all code writes on the primary model, and stops short of committing so the user can manually QA. Use when the user names a plan doc plus a stage/phase number and wants it actually executed — not designed from scratch (use cram-plan-feature for that). Pairs with cram-preflight-coverage-check (run before the research/implement loop, to size how much of the stage is actually left to do) and cram-close-plan-stage (to close out after).
 ---
 
 ## Implement Plan Stage
@@ -59,6 +59,25 @@ for open-ended feature work with no plan doc yet — write the plan first
    for things that need judgment (reading the plan doc itself, deciding
    what the research means).
 
+   Structure each delegated prompt with XML tags rather than one prose
+   paragraph — a cheap/fast model is more likely to blend "what you
+   already know" into "the question" if it's all one paragraph:
+
+   ```
+   <context>
+   {what you already know — file paths, relevant facts from the plan doc
+   or prior research — so the subagent doesn't re-derive it}
+   </context>
+
+   <question>
+   {the exact, narrow question(s) needing an answer}
+   </question>
+
+   <output_format>
+   {e.g. "File paths only, one-line note each. No code snippets, no analysis."}
+   </output_format>
+   ```
+
 4. **Never assume when there's more than one reasonable option.** If the
    plan doc is ambiguous about an implementation detail, if an acceptance
    criterion could be satisfied more than one defensible way, or if the
@@ -106,6 +125,5 @@ for open-ended feature work with no plan doc yet — write the plan first
   the plan's parallelization notes, if any), re-check those files are
   still in the state the plan assumed before editing — a parallel stage
   may have already landed changes.
-- Keep subagent research prompts self-contained (file paths, what you
-  already know, exactly what question needs answering) — a cheap-model
-  subagent has no memory of this conversation.
+- Keep subagent research prompts self-contained and tagged per step 3's
+  template — a cheap-model subagent has no memory of this conversation.

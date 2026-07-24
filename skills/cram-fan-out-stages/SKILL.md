@@ -63,11 +63,27 @@ dependency) and let them confirm before invoking this skill.
    single message** (true parallel dispatch). For each:
    - `isolation: "worktree"`, `subagent_type: "general-purpose"`.
    - A **self-contained** prompt — the subagent has no memory of this
-     conversation. Include: the plan doc path, the exact stage/phase number
-     this agent owns (only this one), an instruction to invoke
-     `cram-implement-plan-stage` for that stage, and an explicit reminder
-     to leave its worktree's changes uncommitted — not to commit or push.
-     If step 2 found the stage partially covered, name the gap here.
+     conversation. Structure it with XML tags rather than one prose
+     paragraph, so a cold subagent can't conflate the task, the known gap,
+     and the constraints it must not violate:
+
+     ```
+     <task>Invoke the cram-implement-plan-stage skill for exactly one stage.</task>
+
+     <plan_doc path="{doc path}" stage="{stage number}" title="{stage title}" />
+
+     <known_gap>
+     {only if step 2 found the stage partially covered — the specific
+     already-done piece and the specific remaining gap; omit this tag
+     entirely for a "not covered" stage}
+     </known_gap>
+
+     <constraints>
+     - Only work on stage {N}. Do not touch other stages or their files.
+     - Leave all changes uncommitted in this worktree.
+     - Do not run git commit, git add, or git push.
+     </constraints>
+     ```
    - Leave `run_in_background` at its default — with several agents running
      concurrently you cannot block on one without stalling the others.
 
